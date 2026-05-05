@@ -4,84 +4,93 @@ import { UploadZone } from "@/components/UploadZone";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { ReceiptResult, type ReceiptData } from "@/components/ReceiptResult";
 import { RecentReceipts } from "@/components/RecentReceipts";
-import { Receipt, TrendingUp, BarChart3 } from "lucide-react";
+import { Receipt, TrendingUp, BarChart3, AlertCircle } from "lucide-react";
+import { scanReceipt } from "@/server/receipt-ocr.functions";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const MOCK_RESULT: ReceiptData = {
-  store: "Lidl Bratislava",
-  date: "03.05.2026",
-  total: "24,87 €",
-  category: "Potraviny",
-  items: [
-    { name: "Chlieb celozrnný", price: "1,49 €" },
-    { name: "Mlieko polotučné 1l", price: "0,99 €" },
-    { name: "Kuracie prsia 500g", price: "4,99 €" },
-    { name: "Paradajky 1kg", price: "2,49 €" },
-    { name: "Jogurt biely 150g", price: "0,69 €" },
-    { name: "Cestoviny penne 500g", price: "1,29 €" },
-    { name: "Olivový olej 500ml", price: "5,99 €" },
-    { name: "Banány 1kg", price: "1,49 €" },
-    { name: "Maslo 250g", price: "2,89 €" },
-    { name: "Minerálka 1.5l", price: "0,56 €" },
-  ],
-};
+function receiptToXml(data: ReceiptData): string {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines: string[] = [];
+  lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+  lines.push("<Doklad>");
+  lines.push(`  <Datum>${esc(data.datum)}</Datum>`);
+  lines.push("  <Dodavatel>");
+  lines.push(`    <Nazov>${esc(data.dodavatel.nazov)}</Nazov>`);
+  lines.push(`    <Skratka>${esc(data.dodavatel.skratka)}</Skratka>`);
+  lines.push(`    <ICO>${data.dodavatel.ico ? esc(data.dodavatel.ico) : ""}</ICO>`);
+  lines.push("  </Dodavatel>");
+  lines.push("  <Polozky>");
+  for (const p of data.polozky) {
+    lines.push("    <Polozka>");
+    lines.push(`      <Nazov>${esc(p.nazov)}</Nazov>`);
+    lines.push(`      <CenaBezDPH>${p.cenaBezDph.toFixed(2)}</CenaBezDPH>`);
+    lines.push(`      <SadzbaDPH>${p.sadzba_dph}</SadzbaDPH>`);
+    lines.push(`      <CenaSDPH>${p.cenaSdph.toFixed(2)}</CenaSDPH>`);
+    lines.push("    </Polozka>");
+  }
+  lines.push("  </Polozky>");
+  lines.push(`  <CelkomBezDPH>${data.celkom_bez_dph.toFixed(2)}</CelkomBezDPH>`);
+  lines.push(`  <CelkomDPH>${data.celkom_dph.toFixed(2)}</CelkomDPH>`);
+  lines.push(`  <CelkomSDPH>${data.celkom_s_dph.toFixed(2)}</CelkomSDPH>`);
+  lines.push("</Doklad>");
+  return lines.join("\n");
+}
+
+function downloadXml(data: ReceiptData) {
+  const xml = receiptToXml(data);
+  const blob = new Blob([xml], { type: "application/xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `blocek_${data.datum.replace(/\./g, "-")}_${data.dodavatel.skratka}.xml`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function Index() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ReceiptData | null>(null);
-  const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([
-    {
-      store: "Tesco Košice",
-      date: "01.05.2026",
-      total: "18,45 €",
-      category: "Potraviny",
-      items: [
-        { name: "Rohlík", price: "0,15 €" },
-        { name: "Syra", price: "3,49 €" },
-        { name: "Jablká 1kg", price: "1,99 €" },
-      ],
-    },
-    {
-      store: "DM drogéria",
-      date: "29.04.2026",
-      total: "32,10 €",
-      category: "Drogéria",
-      items: [
-        { name: "Šampón", price: "4,99 €" },
-        { name: "Zubná pasta", price: "2,49 €" },
-      ],
-    },
-    {
-      store: "Kaufland",
-      date: "27.04.2026",
-      total: "56,78 €",
-      category: "Potraviny",
-      items: [
-        { name: "Víno", price: "6,99 €" },
-        { name: "Syr eidam", price: "2,99 €" },
-        { name: "Šunka", price: "3,49 €" },
-      ],
-    },
-  ]);
+  const [error, setError] = useState<string | null>(null);
+  const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([]);
 
-  const handleFileSelect = useCallback((file: File) => {
+  const handleFileSelect = useCallback(async (file: File) => {
     setSelectedFile(file);
     setResult(null);
+    setError(null);
     const url = URL.createObjectURL(file);
     setImageUrl(url);
     setScanning(true);
 
-    // Simulate scanning
-    setTimeout(() => {
+    try {
+      const base64 = await fileToBase64(file);
+      const data = await scanReceipt({
+        data: { base64Image: base64, mimeType: file.type || "image/jpeg" },
+      });
       setScanning(false);
-      setResult(MOCK_RESULT);
-      setRecentReceipts((prev) => [MOCK_RESULT, ...prev]);
-    }, 2500);
+      setResult(data as ReceiptData);
+      setRecentReceipts((prev) => [data as ReceiptData, ...prev]);
+    } catch (err) {
+      setScanning(false);
+      setError(err instanceof Error ? err.message : "Chyba pri skenovaní");
+    }
   }, []);
 
   const handleRemove = () => {
@@ -89,12 +98,12 @@ function Index() {
     setSelectedFile(null);
     setImageUrl(null);
     setResult(null);
+    setError(null);
     setScanning(false);
   };
 
   const totalSpent = recentReceipts.reduce((sum, r) => {
-    const num = parseFloat(r.total.replace(",", ".").replace(" €", ""));
-    return sum + num;
+    return sum + r.celkom_s_dph;
   }, 0);
 
   return (
@@ -159,7 +168,20 @@ function Index() {
           </div>
           <div>
             {result ? (
-              <ReceiptResult data={result} />
+              <ReceiptResult data={result} onExportXml={() => downloadXml(result)} />
+            ) : error ? (
+              <div className="flex h-full items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-10">
+                <div className="text-center">
+                  <AlertCircle className="mx-auto h-12 w-12 text-destructive/60" />
+                  <p className="mt-3 text-sm text-destructive">{error}</p>
+                  <button
+                    onClick={handleRemove}
+                    className="mt-3 text-xs text-muted-foreground underline hover:text-foreground"
+                  >
+                    Skúsiť znova
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="flex h-full items-center justify-center rounded-xl border border-dashed bg-muted/30 p-10">
                 <div className="text-center">
