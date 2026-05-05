@@ -7,6 +7,7 @@ interface RecentReceiptsProps {
 
 export function RecentReceipts({ receipts }: RecentReceiptsProps) {
   if (receipts.length === 0) return null;
+  const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
 
   return (
     <div>
@@ -17,24 +18,26 @@ export function RecentReceipts({ receipts }: RecentReceiptsProps) {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                  <Store className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-bold text-primary">{r.dodavatel.skratka}</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">{r.store}</p>
+                  <p className="font-semibold text-foreground">{r.dodavatel.nazov}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {r.date}
+                    {r.datum}
                   </div>
                 </div>
               </div>
-              <p className="text-lg font-bold text-primary">{r.total}</p>
+              <p className="text-lg font-bold text-primary">{fmt(r.celkom_s_dph)}</p>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
-                {r.category}
-              </span>
+              {r.dodavatel.ico && (
+                <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
+                  IČO: {r.dodavatel.ico}
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">
-                {r.items.length} položiek
+                {r.polozky.length} položiek
               </span>
             </div>
           </div>
