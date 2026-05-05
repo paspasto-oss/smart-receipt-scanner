@@ -29,14 +29,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { title: "Učtenky pokope" },
       { title: "BločkoSken – Skener bločkov" },
       { name: "description", content: "Skenujte bločky a sledujte svoje výdavky jednoducho a rýchlo." },
-      { property: "og:title", content: "BločkoSken – Skener bločkov" },
-      { property: "og:description", content: "Skenujte bločky a sledujte svoje výdavky." },
+      { property: "og:title", content: "Učtenky pokope" },
+      { property: "og:description", content: "Skenujte bločky a sledujte svoje výdavky jednoducho a rýchlo." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Učtenky pokope" },
+      { name: "twitter:description", content: "Skenujte bločky a sledujte svoje výdavky jednoducho a rýchlo." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c3f5b52e-fb9a-41c8-b9da-8a41017278dc/id-preview-ced3cd5e--8ed6eed3-12f4-468c-889e-23c37eff7f3c.lovable.app-1778006883637.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c3f5b52e-fb9a-41c8-b9da-8a41017278dc/id-preview-ced3cd5e--8ed6eed3-12f4-468c-889e-23c37eff7f3c.lovable.app-1778006883637.png" },
     ],
     links: [
       {
