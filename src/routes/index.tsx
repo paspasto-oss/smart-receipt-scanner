@@ -12,40 +12,65 @@ export const Route = createFileRoute("/")({
 });
 
 function receiptToXml(data: ReceiptData): string {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return receiptToXmlBlock(data);
+}
+
+function receiptsToXml(receipts: ReceiptData[]): string {
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push("<Doklad>");
-  lines.push(`  <Datum>${esc(data.datum)}</Datum>`);
-  lines.push("  <Dodavatel>");
-  lines.push(`    <Nazov>${esc(data.dodavatel.nazov)}</Nazov>`);
-  lines.push(`    <Skratka>${esc(data.dodavatel.skratka)}</Skratka>`);
-  lines.push(`    <ICO>${data.dodavatel.ico ? esc(data.dodavatel.ico) : ""}</ICO>`);
-  lines.push("  </Dodavatel>");
-  lines.push("  <Polozky>");
-  for (const p of data.polozky) {
-    lines.push("    <Polozka>");
-    lines.push(`      <Nazov>${esc(p.nazov)}</Nazov>`);
-    lines.push(`      <CenaBezDPH>${p.cenaBezDph.toFixed(2)}</CenaBezDPH>`);
-    lines.push(`      <SadzbaDPH>${p.sadzba_dph}</SadzbaDPH>`);
-    lines.push(`      <CenaSDPH>${p.cenaSdph.toFixed(2)}</CenaSDPH>`);
-    lines.push("    </Polozka>");
+  lines.push("<Doklady>");
+  for (const data of receipts) {
+    lines.push(receiptToXmlBlock(data, "  "));
   }
-  lines.push("  </Polozky>");
-  lines.push(`  <CelkomBezDPH>${data.celkom_bez_dph.toFixed(2)}</CelkomBezDPH>`);
-  lines.push(`  <CelkomDPH>${data.celkom_dph.toFixed(2)}</CelkomDPH>`);
-  lines.push(`  <CelkomSDPH>${data.celkom_s_dph.toFixed(2)}</CelkomSDPH>`);
-  lines.push("</Doklad>");
+  lines.push("</Doklady>");
+  return lines.join("\n");
+}
+
+function receiptToXmlBlock(data: ReceiptData, indent = ""): string {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines: string[] = [];
+  lines.push(`${indent}<Doklad>`);
+  lines.push(`${indent}  <Datum>${esc(data.datum)}</Datum>`);
+  lines.push(`${indent}  <Dodavatel>`);
+  lines.push(`${indent}    <Nazov>${esc(data.dodavatel.nazov)}</Nazov>`);
+  lines.push(`${indent}    <Skratka>${esc(data.dodavatel.skratka)}</Skratka>`);
+  lines.push(`${indent}    <ICO>${data.dodavatel.ico ? esc(data.dodavatel.ico) : ""}</ICO>`);
+  lines.push(`${indent}  </Dodavatel>`);
+  lines.push(`${indent}  <Polozky>`);
+  for (const p of data.polozky) {
+    lines.push(`${indent}    <Polozka>`);
+    lines.push(`${indent}      <Nazov>${esc(p.nazov)}</Nazov>`);
+    lines.push(`${indent}      <CenaBezDPH>${p.cenaBezDph.toFixed(2)}</CenaBezDPH>`);
+    lines.push(`${indent}      <SadzbaDPH>${p.sadzba_dph}</SadzbaDPH>`);
+    lines.push(`${indent}      <CenaSDPH>${p.cenaSdph.toFixed(2)}</CenaSDPH>`);
+    lines.push(`${indent}    </Polozka>`);
+  }
+  lines.push(`${indent}  </Polozky>`);
+  lines.push(`${indent}  <CelkomBezDPH>${data.celkom_bez_dph.toFixed(2)}</CelkomBezDPH>`);
+  lines.push(`${indent}  <CelkomDPH>${data.celkom_dph.toFixed(2)}</CelkomDPH>`);
+  lines.push(`${indent}  <CelkomSDPH>${data.celkom_s_dph.toFixed(2)}</CelkomSDPH>`);
+  lines.push(`${indent}</Doklad>`);
   return lines.join("\n");
 }
 
 function downloadXml(data: ReceiptData) {
-  const xml = receiptToXml(data);
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + receiptToXmlBlock(data);
   const blob = new Blob([xml], { type: "application/xml" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = `blocek_${data.datum.replace(/\./g, "-")}_${data.dodavatel.skratka}.xml`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadGroupXml(receipts: ReceiptData[], groupLabel: string) {
+  const xml = receiptsToXml(receipts);
+  const blob = new Blob([xml], { type: "application/xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `blocky_${groupLabel.replace(/[^a-zA-Z0-9]/g, "_")}.xml`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -196,7 +221,7 @@ function Index() {
         </div>
 
         {/* Recent receipts */}
-        <RecentReceipts receipts={recentReceipts} />
+        <RecentReceipts receipts={recentReceipts} onExportGroup={downloadGroupXml} />
       </main>
     </div>
   );
