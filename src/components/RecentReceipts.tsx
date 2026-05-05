@@ -1,9 +1,10 @@
-import { Calendar, CalendarDays, CalendarRange, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, CalendarDays, CalendarRange, ChevronDown, ChevronRight, Download } from "lucide-react";
 import type { ReceiptData } from "./ReceiptResult";
 import { useState, useMemo } from "react";
 
 interface RecentReceiptsProps {
   receipts: ReceiptData[];
+  onExportGroup?: (receipts: ReceiptData[], groupLabel: string) => void;
 }
 
 type GroupMode = "day" | "month" | "year";
@@ -36,7 +37,7 @@ function formatGroupLabel(key: string, mode: GroupMode): string {
   return `${+d}.${+m}.${y}`;
 }
 
-export function RecentReceipts({ receipts }: RecentReceiptsProps) {
+export function RecentReceipts({ receipts, onExportGroup }: RecentReceiptsProps) {
   if (receipts.length === 0) return null;
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
   const [mode, setMode] = useState<GroupMode>("day");
@@ -106,8 +107,24 @@ export function RecentReceipts({ receipts }: RecentReceiptsProps) {
                     {items.length} {items.length === 1 ? "bloček" : items.length < 5 ? "bločky" : "bločkov"}
                   </span>
                 </div>
-                <span className="text-lg font-bold text-primary">{fmt(groupTotal)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-primary">{fmt(groupTotal)}</span>
+                </div>
               </button>
+              {onExportGroup && (
+                <div className="flex justify-end px-4 pb-2 -mt-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onExportGroup(items, formatGroupLabel(key, mode));
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Exportovať XML
+                  </button>
+                </div>
+              )}
               {!isCollapsed && (
                 <div className="border-t divide-y">
                   {items.map((r, i) => (
