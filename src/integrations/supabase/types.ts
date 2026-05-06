@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      receipts: {
+        Row: {
+          celkom_bez_dph: number
+          celkom_dph: number
+          celkom_s_dph: number
+          created_at: string
+          datum: string
+          dodavatel_ico: string | null
+          dodavatel_nazov: string
+          dodavatel_skratka: string
+          id: string
+          polozky: Json
+        }
+        Insert: {
+          celkom_bez_dph?: number
+          celkom_dph?: number
+          celkom_s_dph?: number
+          created_at?: string
+          datum: string
+          dodavatel_ico?: string | null
+          dodavatel_nazov: string
+          dodavatel_skratka?: string
+          id?: string
+          polozky?: Json
+        }
+        Update: {
+          celkom_bez_dph?: number
+          celkom_dph?: number
+          celkom_s_dph?: number
+          created_at?: string
+          datum?: string
+          dodavatel_ico?: string | null
+          dodavatel_nazov?: string
+          dodavatel_skratka?: string
+          id?: string
+          polozky?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
