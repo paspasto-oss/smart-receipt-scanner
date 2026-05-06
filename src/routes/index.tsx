@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { ReceiptResult, type ReceiptData } from "@/components/ReceiptResult";
 import { RecentReceipts } from "@/components/RecentReceipts";
 import { Receipt, TrendingUp, BarChart3, AlertCircle } from "lucide-react";
 import { scanReceipt } from "@/server/receipt-ocr.functions";
+import { saveReceiptFn, loadReceiptsFn } from "@/server/receipts.functions";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -96,6 +97,10 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([]);
 
+  useEffect(() => {
+    loadReceiptsFn().then((data) => setRecentReceipts(data)).catch(console.error);
+  }, []);
+
   const handleFileSelect = useCallback(async (file: File) => {
     setSelectedFile(file);
     setResult(null);
@@ -111,7 +116,16 @@ function Index() {
       });
       setScanning(false);
       setResult(data as ReceiptData);
-      setRecentReceipts((prev) => [data as ReceiptData, ...prev]);
+      // Save to database
+      try {
+        await saveReceiptFn({ data: data as ReceiptData });
+        // Reload from DB to get ID and stay in sync
+        const fresh = await loadReceiptsFn();
+        setRecentReceipts(fresh);
+      } catch (saveErr) {
+        console.error("Failed to save receipt:", saveErr);
+        setRecentReceipts((prev) => [data as ReceiptData, ...prev]);
+      }
     } catch (err) {
       setScanning(false);
       setError(err instanceof Error ? err.message : "Chyba pri skenovaní");
