@@ -193,7 +193,16 @@ function Index() {
           </div>
           <div>
             {result ? (
-              <ReceiptResult data={result} onExportXml={() => downloadXml(result)} />
+              <div className="space-y-3">
+                <ReceiptResult data={result} onExportXml={() => downloadXml(result)} />
+                <button
+                  onClick={handleRemove}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Receipt className="h-4 w-4" />
+                  Nový doklad
+                </button>
+              </div>
             ) : error ? (
               <div className="flex h-full items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-10">
                 <div className="text-center">
