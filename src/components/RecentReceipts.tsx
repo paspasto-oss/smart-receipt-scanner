@@ -1,10 +1,12 @@
 import { Calendar, CalendarDays, CalendarRange, ChevronDown, ChevronRight, Download } from "lucide-react";
 import type { ReceiptData } from "./ReceiptResult";
 import { useState, useMemo } from "react";
+import { FileText } from "lucide-react";
 
 interface RecentReceiptsProps {
   receipts: ReceiptData[];
   onExportGroup?: (receipts: ReceiptData[], groupLabel: string) => void;
+  onExportGroupPdf?: (receipts: ReceiptData[], groupLabel: string) => void;
 }
 
 type GroupMode = "day" | "month" | "year";
@@ -37,7 +39,7 @@ function formatGroupLabel(key: string, mode: GroupMode): string {
   return `${+d}.${+m}.${y}`;
 }
 
-export function RecentReceipts({ receipts, onExportGroup }: RecentReceiptsProps) {
+export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf }: RecentReceiptsProps) {
   if (receipts.length === 0) return null;
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
   const [mode, setMode] = useState<GroupMode>("day");
@@ -112,7 +114,7 @@ export function RecentReceipts({ receipts, onExportGroup }: RecentReceiptsProps)
                 </div>
               </button>
               {onExportGroup && (
-                <div className="flex justify-end px-4 pb-2 -mt-1">
+                <div className="flex justify-end gap-2 px-4 pb-2 -mt-1">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -123,6 +125,18 @@ export function RecentReceipts({ receipts, onExportGroup }: RecentReceiptsProps)
                     <Download className="h-3.5 w-3.5" />
                     Exportovať XML
                   </button>
+                  {onExportGroupPdf && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onExportGroupPdf(items, formatGroupLabel(key, mode));
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Exportovať PDF
+                    </button>
+                  )}
                 </div>
               )}
               {!isCollapsed && (
