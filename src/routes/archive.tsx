@@ -20,7 +20,21 @@ export const Route = createFileRoute("/archive")({
 type StoredReceipt = ReceiptData & { id?: string };
 
 function downloadXmlFor(data: ReceiptData) {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const xml = buildReceiptXml(data);
+  const blob = new Blob([xml], { type: "application/xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `blocek_${data.datum.replace(/\./g, "-")}_${data.dodavatel.skratka}.xml`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const xmlEsc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function buildReceiptXml(data: ReceiptData): string {
+  const esc = xmlEsc;
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   lines.push("<Doklad>");
@@ -44,12 +58,37 @@ function downloadXmlFor(data: ReceiptData) {
   lines.push(`  <CelkomDPH>${data.celkom_dph.toFixed(2)}</CelkomDPH>`);
   lines.push(`  <CelkomSDPH>${data.celkom_s_dph.toFixed(2)}</CelkomSDPH>`);
   lines.push("</Doklad>");
-  const xml = lines.join("\n");
-  const blob = new Blob([xml], { type: "application/xml" });
+  return lines.join("\n");
+}
+
+function downloadGroupXml(items: ReceiptData[], label: string) {
+  const esc = xmlEsc;
+  const sumBez = items.reduce((s, r) => s + r.celkom_bez_dph, 0);
+  const sumDph = items.reduce((s, r) => s + r.celkom_dph, 0);
+  const sumSdph = items.reduce((s, r) => s + r.celkom_s_dph, 0);
+  const lines: string[] = [];
+  lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+  lines.push(`<Doklady obdobie="${esc(label)}" pocet="${items.length}">`);
+  for (const data of items) {
+    const inner = buildReceiptXml(data)
+      .split("\n")
+      .slice(1)
+      .map((l) => "  " + l)
+      .join("\n");
+    lines.push(inner);
+  }
+  lines.push("  <Sumar>");
+  lines.push(`    <CelkomBezDPH>${sumBez.toFixed(2)}</CelkomBezDPH>`);
+  lines.push(`    <CelkomDPH>${sumDph.toFixed(2)}</CelkomDPH>`);
+  lines.push(`    <CelkomSDPH>${sumSdph.toFixed(2)}</CelkomSDPH>`);
+  lines.push("  </Sumar>");
+  lines.push("</Doklady>");
+  const blob = new Blob([lines.join("\n")], { type: "application/xml" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `blocek_${data.datum.replace(/\./g, "-")}_${data.dodavatel.skratka}.xml`;
+  const safeLabel = label.replace(/\s+/g, "_").replace(/[^\w\-]/g, "");
+  a.download = `blocky_${safeLabel || "export"}.xml`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -161,14 +200,24 @@ function ArchivePage() {
                         {g.items.length} {g.items.length === 1 ? "doklad" : "dokladov"} · {fmt(sum)}
                       </p>
                     </div>
-                    <button
-                      onClick={() => downloadGroupPdf(g.items, g.label)}
-                      className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-                      title="Stiahnuť všetky doklady mesiaca v jednom PDF"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      PDF
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => downloadGroupPdf(g.items, g.label)}
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                        title="Stiahnuť všetky doklady mesiaca v jednom PDF"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => downloadGroupXml(g.items, g.label)}
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                        title="Stiahnuť všetky doklady mesiaca v jednom XML pre účtovníctvo"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        XML
+                      </button>
+                    </div>
                   </li>
                 );
               })}
