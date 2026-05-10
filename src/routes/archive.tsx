@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Archive, ArrowLeft, Search, Trash2, Download, Eye } from "lucide-react";
+import { Archive, ArrowLeft, Search, Trash2, Download, Eye, FileText } from "lucide-react";
 import { loadReceiptsFn, deleteReceiptFn } from "@/server/receipts.functions";
 import type { ReceiptData } from "@/components/ReceiptResult";
 import { ReceiptResult } from "@/components/ReceiptResult";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { downloadGroupPdf, parseReceiptYearMonth, monthLabel } from "@/lib/receipt-pdf";
 
 export const Route = createFileRoute("/archive")({
   head: () => ({
@@ -81,6 +82,20 @@ function ArchivePage() {
   const total = filtered.reduce((s, r) => s + r.celkom_s_dph, 0);
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
 
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { label: string; items: StoredReceipt[] }>();
+    for (const r of filtered) {
+      const ym = parseReceiptYearMonth(r.datum);
+      const key = ym ? `${ym.year}-${ym.month}` : "neznamy";
+      const label = ym ? monthLabel(ym.year, ym.month) : "Neznámy dátum";
+      if (!map.has(key)) map.set(key, { label, items: [] });
+      map.get(key)!.items.push(r);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .map(([key, v]) => ({ key, ...v }));
+  }, [filtered]);
+
   const handleDelete = async (id?: string) => {
     if (!id) return;
     if (!confirm("Naozaj zmazať tento bloček z archívu?")) return;
@@ -128,6 +143,38 @@ function ArchivePage() {
             <p className="mt-1 text-2xl font-bold text-primary">{fmt(total)}</p>
           </div>
         </div>
+
+        {!loading && monthGroups.length > 0 && (
+          <div className="rounded-xl border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Hromadný export po mesiacoch</p>
+              <span className="text-xs text-muted-foreground">{monthGroups.length} mesiacov</span>
+            </div>
+            <ul className="divide-y">
+              {monthGroups.map((g) => {
+                const sum = g.items.reduce((s, r) => s + r.celkom_s_dph, 0);
+                return (
+                  <li key={g.key} className="flex items-center justify-between gap-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{g.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {g.items.length} {g.items.length === 1 ? "doklad" : "dokladov"} · {fmt(sum)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => downloadGroupPdf(g.items, g.label)}
+                      className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                      title="Stiahnuť všetky doklady mesiaca v jednom PDF"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      PDF
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
