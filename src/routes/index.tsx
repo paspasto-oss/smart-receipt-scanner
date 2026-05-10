@@ -7,7 +7,7 @@ import { RecentReceipts } from "@/components/RecentReceipts";
 import { Receipt, TrendingUp, BarChart3, AlertCircle, Archive } from "lucide-react";
 import { scanReceipt } from "@/server/receipt-ocr.functions";
 import { saveReceiptFn, loadReceiptsFn } from "@/server/receipts.functions";
-import { jsPDF } from "jspdf";
+import { downloadGroupPdf } from "@/lib/receipt-pdf";
 
 export const Route = createFileRoute("/")({
   component: Index,
