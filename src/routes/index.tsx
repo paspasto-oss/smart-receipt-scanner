@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { ReceiptResult, type ReceiptData } from "@/components/ReceiptResult";
 import { RecentReceipts } from "@/components/RecentReceipts";
-import { Receipt, TrendingUp, BarChart3, AlertCircle } from "lucide-react";
+import { Receipt, TrendingUp, BarChart3, AlertCircle, Archive } from "lucide-react";
 import { scanReceipt } from "@/server/receipt-ocr.functions";
 import { saveReceiptFn, loadReceiptsFn } from "@/server/receipts.functions";
 import { jsPDF } from "jspdf";
@@ -254,6 +254,13 @@ function Index() {
               <p className="text-xs text-muted-foreground">Skener bločkov</p>
             </div>
           </div>
+          <Link
+            to="/archive"
+            className="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <Archive className="h-4 w-4" />
+            Archív
+          </Link>
         </div>
       </header>
 
