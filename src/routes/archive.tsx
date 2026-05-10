@@ -200,22 +200,24 @@ function ArchivePage() {
                         {g.items.length} {g.items.length === 1 ? "doklad" : "dokladov"} · {fmt(sum)}
                       </p>
                     </div>
-                    <button
-                      onClick={() => downloadGroupPdf(g.items, g.label)}
-                      className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-                      title="Stiahnuť všetky doklady mesiaca v jednom PDF"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => downloadGroupXml(g.items, g.label)}
-                      className="ml-2 inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-                      title="Stiahnuť všetky doklady mesiaca v jednom XML pre účtovníctvo"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      XML
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => downloadGroupPdf(g.items, g.label)}
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                        title="Stiahnuť všetky doklady mesiaca v jednom PDF"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => downloadGroupXml(g.items, g.label)}
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                        title="Stiahnuť všetky doklady mesiaca v jednom XML pre účtovníctvo"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        XML
+                      </button>
+                    </div>
                   </li>
                 );
               })}
