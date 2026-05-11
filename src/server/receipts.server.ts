@@ -13,6 +13,7 @@ export async function saveReceipt(data: ReceiptData) {
       celkom_bez_dph: data.celkom_bez_dph,
       celkom_dph: data.celkom_dph,
       celkom_s_dph: data.celkom_s_dph,
+      image_url: data.image_url ?? null,
     })
     .select()
     .single();
@@ -41,6 +42,7 @@ export async function loadReceipts(): Promise<(ReceiptData & { id: string })[]> 
     celkom_bez_dph: Number(r.celkom_bez_dph),
     celkom_dph: Number(r.celkom_dph),
     celkom_s_dph: Number(r.celkom_s_dph),
+    image_url: r.image_url ?? null,
   }));
 }
 
