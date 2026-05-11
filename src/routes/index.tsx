@@ -8,6 +8,7 @@ import { Receipt, TrendingUp, BarChart3, AlertCircle, Archive } from "lucide-rea
 import { scanReceipt } from "@/server/receipt-ocr.functions";
 import { saveReceiptFn, loadReceiptsFn } from "@/server/receipts.functions";
 import { downloadGroupPdf } from "@/lib/receipt-pdf";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -117,16 +118,30 @@ function Index() {
         data: { base64Image: base64, mimeType: file.type || "image/jpeg" },
       });
       setScanning(false);
-      setResult(data as ReceiptData);
+      // Upload original image to storage
+      let uploadedUrl: string | null = null;
+      try {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("receipts")
+          .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+        if (upErr) throw upErr;
+        uploadedUrl = supabase.storage.from("receipts").getPublicUrl(path).data.publicUrl;
+      } catch (upErr) {
+        console.error("Failed to upload receipt image:", upErr);
+      }
+      const enriched: ReceiptData = { ...(data as ReceiptData), image_url: uploadedUrl };
+      setResult(enriched);
       // Save to database
       try {
-        await saveReceiptFn({ data: data as ReceiptData });
+        await saveReceiptFn({ data: enriched });
         // Reload from DB to get ID and stay in sync
         const fresh = await loadReceiptsFn();
         setRecentReceipts(fresh);
       } catch (saveErr) {
         console.error("Failed to save receipt:", saveErr);
-        setRecentReceipts((prev) => [data as ReceiptData, ...prev]);
+        setRecentReceipts((prev) => [enriched, ...prev]);
       }
     } catch (err) {
       setScanning(false);
