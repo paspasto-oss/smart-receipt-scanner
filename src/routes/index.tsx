@@ -6,7 +6,7 @@ import { ReceiptResult, type ReceiptData } from "@/components/ReceiptResult";
 import { RecentReceipts } from "@/components/RecentReceipts";
 import { Receipt, TrendingUp, BarChart3, AlertCircle, Archive } from "lucide-react";
 import { scanReceipt } from "@/server/receipt-ocr.functions";
-import { saveReceiptFn, loadReceiptsFn } from "@/server/receipts.functions";
+import { saveReceiptFn, loadReceiptsFn, deleteReceiptFn } from "@/server/receipts.functions";
 import { downloadGroupPdf } from "@/lib/receipt-pdf";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -98,7 +98,7 @@ function Index() {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([]);
+  const [recentReceipts, setRecentReceipts] = useState<(ReceiptData & { id?: string })[]>([]);
 
   useEffect(() => {
     loadReceiptsFn().then((data) => setRecentReceipts(data)).catch(console.error);
@@ -272,6 +272,15 @@ function Index() {
           receipts={recentReceipts}
           onExportGroup={downloadGroupXml}
           onExportGroupPdf={downloadGroupPdf}
+          onDelete={async (id) => {
+            try {
+              await deleteReceiptFn({ data: { id } });
+              setRecentReceipts((prev) => prev.filter((r) => r.id !== id));
+            } catch (err) {
+              console.error(err);
+              alert("Nepodarilo sa zmazať bloček.");
+            }
+          }}
         />
       </main>
     </div>
