@@ -46,8 +46,9 @@ export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf, onDe
   const [mode, setMode] = useState<GroupMode>("day");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
+  type R = ReceiptData & { id?: string };
   const groups = useMemo(() => {
-    const map = new Map<string, ReceiptData[]>();
+    const map = new Map<string, R[]>();
     for (const r of receipts) {
       const k = groupKey(r.datum, mode);
       if (!map.has(k)) map.set(k, []);
