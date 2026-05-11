@@ -25,6 +25,7 @@ export type Database = {
           dodavatel_nazov: string
           dodavatel_skratka: string
           id: string
+          image_url: string | null
           polozky: Json
         }
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           dodavatel_nazov: string
           dodavatel_skratka?: string
           id?: string
+          image_url?: string | null
           polozky?: Json
         }
         Update: {
@@ -49,6 +51,7 @@ export type Database = {
           dodavatel_nazov?: string
           dodavatel_skratka?: string
           id?: string
+          image_url?: string | null
           polozky?: Json
         }
         Relationships: []
