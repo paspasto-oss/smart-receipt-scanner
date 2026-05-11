@@ -16,6 +16,7 @@ export interface ReceiptData {
   celkom_bez_dph: number;
   celkom_dph: number;
   celkom_s_dph: number;
+  image_url?: string | null;
 }
 
 interface ReceiptResultProps {
@@ -76,6 +77,28 @@ export function ReceiptResult({ data, onExportXml }: ReceiptResultProps) {
           </div>
         </div>
       </div>
+
+      {data.image_url && (
+        <div className="mb-5">
+          <h4 className="mb-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Sken / foto bločka
+          </h4>
+          <a
+            href={data.image_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block overflow-hidden rounded-lg border bg-muted/20"
+            title="Otvoriť v novom okne"
+          >
+            <img
+              src={data.image_url}
+              alt="Sken bločka"
+              className="max-h-[420px] w-full object-contain"
+              loading="lazy"
+            />
+          </a>
+        </div>
+      )}
 
       {/* VAT Summary */}
       <div className="mb-5 rounded-lg border p-3 space-y-1.5">
