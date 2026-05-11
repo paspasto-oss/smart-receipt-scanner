@@ -1,12 +1,13 @@
-import { Calendar, CalendarDays, CalendarRange, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { Calendar, CalendarDays, CalendarRange, ChevronDown, ChevronRight, Download, Trash2 } from "lucide-react";
 import type { ReceiptData } from "./ReceiptResult";
 import { useState, useMemo } from "react";
 import { FileText } from "lucide-react";
 
 interface RecentReceiptsProps {
-  receipts: ReceiptData[];
+  receipts: (ReceiptData & { id?: string })[];
   onExportGroup?: (receipts: ReceiptData[], groupLabel: string) => void;
   onExportGroupPdf?: (receipts: ReceiptData[], groupLabel: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 type GroupMode = "day" | "month" | "year";
@@ -39,7 +40,7 @@ function formatGroupLabel(key: string, mode: GroupMode): string {
   return `${+d}.${+m}.${y}`;
 }
 
-export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf }: RecentReceiptsProps) {
+export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf, onDelete }: RecentReceiptsProps) {
   if (receipts.length === 0) return null;
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
   const [mode, setMode] = useState<GroupMode>("day");
@@ -142,7 +143,7 @@ export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf }: Re
               {!isCollapsed && (
                 <div className="border-t divide-y">
                   {items.map((r, i) => (
-                    <div key={i} className="flex items-center justify-between px-4 py-3">
+                    <div key={r.id ?? i} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
                           <span className="text-xs font-bold text-primary">{r.dodavatel.skratka}</span>
@@ -156,7 +157,21 @@ export function RecentReceipts({ receipts, onExportGroup, onExportGroupPdf }: Re
                           </div>
                         </div>
                       </div>
-                      <p className="font-bold text-foreground">{fmt(r.celkom_s_dph)}</p>
+                      <div className="flex items-center gap-3">
+                        <p className="font-bold text-foreground">{fmt(r.celkom_s_dph)}</p>
+                        {onDelete && r.id && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Naozaj zmazať tento bloček?")) onDelete(r.id!);
+                            }}
+                            title="Zmazať bloček"
+                            className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
