@@ -43,6 +43,7 @@ export async function loadReceipts(): Promise<(ReceiptData & { id: string })[]> 
     celkom_dph: Number(r.celkom_dph),
     celkom_s_dph: Number(r.celkom_s_dph),
     image_url: r.image_url ?? null,
+    folder_id: (r as any).folder_id ?? null,
   }));
 }
 
