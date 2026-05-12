@@ -43,6 +43,7 @@ export async function loadReceipts(): Promise<(ReceiptData & { id: string })[]> 
     celkom_dph: Number(r.celkom_dph),
     celkom_s_dph: Number(r.celkom_s_dph),
     image_url: r.image_url ?? null,
+    folder_id: (r as any).folder_id ?? null,
   }));
 }
 
@@ -51,5 +52,37 @@ export async function deleteReceipt(id: string) {
     .from("receipts")
     .delete()
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function listFolders() {
+  const { data, error } = await supabaseAdmin
+    .from("folders")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function createFolder(name: string) {
+  const { data, error } = await supabaseAdmin
+    .from("folders")
+    .insert({ name })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function deleteFolder(id: string) {
+  const { error } = await supabaseAdmin.from("folders").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function setReceiptFolder(receiptId: string, folderId: string | null) {
+  const { error } = await supabaseAdmin
+    .from("receipts")
+    .update({ folder_id: folderId })
+    .eq("id", receiptId);
   if (error) throw new Error(error.message);
 }

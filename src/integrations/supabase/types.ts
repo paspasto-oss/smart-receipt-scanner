@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           celkom_bez_dph: number
@@ -24,6 +42,7 @@ export type Database = {
           dodavatel_ico: string | null
           dodavatel_nazov: string
           dodavatel_skratka: string
+          folder_id: string | null
           id: string
           image_url: string | null
           polozky: Json
@@ -37,6 +56,7 @@ export type Database = {
           dodavatel_ico?: string | null
           dodavatel_nazov: string
           dodavatel_skratka?: string
+          folder_id?: string | null
           id?: string
           image_url?: string | null
           polozky?: Json
@@ -50,11 +70,20 @@ export type Database = {
           dodavatel_ico?: string | null
           dodavatel_nazov?: string
           dodavatel_skratka?: string
+          folder_id?: string | null
           id?: string
           image_url?: string | null
           polozky?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "receipts_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
