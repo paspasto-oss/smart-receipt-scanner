@@ -1,7 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Archive, ArrowLeft, Search, Trash2, Download, Eye, FileText } from "lucide-react";
-import { loadReceiptsFn, deleteReceiptFn } from "@/server/receipts.functions";
+import { Archive, ArrowLeft, Search, Trash2, Download, Eye, FileText, FolderPlus, Folder, X } from "lucide-react";
+import {
+  loadReceiptsFn,
+  deleteReceiptFn,
+  listFoldersFn,
+  createFolderFn,
+  deleteFolderFn,
+  setReceiptFolderFn,
+} from "@/server/receipts.functions";
 import type { ReceiptData } from "@/components/ReceiptResult";
 import { ReceiptResult } from "@/components/ReceiptResult";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,7 +24,8 @@ export const Route = createFileRoute("/archive")({
   component: ArchivePage,
 });
 
-type StoredReceipt = ReceiptData & { id?: string };
+type StoredReceipt = ReceiptData & { id?: string; folder_id?: string | null };
+type FolderRow = { id: string; name: string };
 
 function downloadXmlFor(data: ReceiptData) {
   const xml = buildReceiptXml(data);
@@ -98,25 +106,72 @@ function ArchivePage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<StoredReceipt | null>(null);
+  const [folders, setFolders] = useState<FolderRow[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string | "all" | "none">("all");
 
   useEffect(() => {
-    loadReceiptsFn()
-      .then((data) => setReceipts(data as StoredReceipt[]))
+    Promise.all([loadReceiptsFn(), listFoldersFn()])
+      .then(([data, fs]) => {
+        setReceipts(data as StoredReceipt[]);
+        setFolders(fs as FolderRow[]);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  const handleNewFolder = async () => {
+    const name = prompt("Názov priečinka (napr. Firemné, Osobné, Výlet):")?.trim();
+    if (!name) return;
+    try {
+      const f = (await createFolderFn({ data: { name } })) as FolderRow;
+      setFolders((prev) => [...prev, f]);
+    } catch (e) {
+      console.error(e);
+      alert("Nepodarilo sa vytvoriť priečinok.");
+    }
+  };
+
+  const handleDeleteFolder = async (id: string) => {
+    if (!confirm("Zmazať priečinok? Bločky zostanú v archíve bez priečinka.")) return;
+    try {
+      await deleteFolderFn({ data: { id } });
+      setFolders((prev) => prev.filter((f) => f.id !== id));
+      setReceipts((prev) =>
+        prev.map((r) => (r.folder_id === id ? { ...r, folder_id: null } : r)),
+      );
+      if (activeFolder === id) setActiveFolder("all");
+    } catch (e) {
+      console.error(e);
+      alert("Nepodarilo sa zmazať priečinok.");
+    }
+  };
+
+  const handleAssignFolder = async (receiptId: string, folderId: string | null) => {
+    try {
+      await setReceiptFolderFn({ data: { receiptId, folderId } });
+      setReceipts((prev) =>
+        prev.map((r) => (r.id === receiptId ? { ...r, folder_id: folderId } : r)),
+      );
+    } catch (e) {
+      console.error(e);
+      alert("Nepodarilo sa priradiť priečinok.");
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return receipts;
-    return receipts.filter(
+    let list = receipts;
+    if (activeFolder === "none") list = list.filter((r) => !r.folder_id);
+    else if (activeFolder !== "all") list = list.filter((r) => r.folder_id === activeFolder);
+    if (!q) return list;
+    return list.filter(
       (r) =>
         r.dodavatel.nazov.toLowerCase().includes(q) ||
         (r.dodavatel.ico ?? "").toLowerCase().includes(q) ||
         r.datum.toLowerCase().includes(q) ||
         r.polozky.some((p) => p.nazov.toLowerCase().includes(q)),
     );
-  }, [receipts, query]);
+  }, [receipts, query, activeFolder]);
 
   const total = filtered.reduce((s, r) => s + r.celkom_s_dph, 0);
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " €";
@@ -172,6 +227,75 @@ function ArchivePage() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+        <div className="rounded-xl border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Priečinky</p>
+            <button
+              onClick={handleNewFolder}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <FolderPlus className="h-3.5 w-3.5" />
+              Nový priečinok
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveFolder("all")}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeFolder === "all"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              Všetky ({receipts.length})
+            </button>
+            <button
+              onClick={() => setActiveFolder("none")}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeFolder === "none"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              Bez priečinka ({receipts.filter((r) => !r.folder_id).length})
+            </button>
+            {folders.map((f) => {
+              const count = receipts.filter((r) => r.folder_id === f.id).length;
+              const active = activeFolder === f.id;
+              return (
+                <div
+                  key={f.id}
+                  className={`group inline-flex items-center gap-1 rounded-full border pl-3 pr-1 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <button
+                    onClick={() => setActiveFolder(f.id)}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <Folder className="h-3.5 w-3.5" />
+                    {f.name} ({count})
+                  </button>
+                  <button
+                    onClick={() => handleDeleteFolder(f.id)}
+                    title="Zmazať priečinok"
+                    className={`rounded-full p-0.5 ${active ? "hover:bg-primary-foreground/20" : "hover:bg-destructive/10 hover:text-destructive"}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+            {folders.length === 0 && (
+              <p className="text-xs text-muted-foreground self-center">
+                Zatiaľ žiadne priečinky. Vytvorte prvý napr. „Firemné", „Osobné" alebo „Výlet".
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-xl border bg-card p-4">
             <p className="text-xs font-medium text-muted-foreground">Bločky v archíve</p>
@@ -279,6 +403,19 @@ function ArchivePage() {
                   <span className="text-xs text-muted-foreground">{r.dodavatel.ico ?? "—"}</span>
                   <span className="text-right text-sm font-bold text-foreground">{fmt(r.celkom_s_dph)}</span>
                   <div className="flex justify-end gap-1">
+                    <select
+                      value={r.folder_id ?? ""}
+                      onChange={(e) => r.id && handleAssignFolder(r.id, e.target.value || null)}
+                      title="Priečinok"
+                      className="rounded-md border bg-background px-1.5 py-1 text-xs text-foreground"
+                    >
+                      <option value="">— bez priečinka —</option>
+                      {folders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => setSelected(r)}
                       title="Zobraziť"
