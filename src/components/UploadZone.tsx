@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Camera, Upload, FileImage } from "lucide-react";
+import { Camera, Upload } from "lucide-react";
 
 interface UploadZoneProps {
   onFileSelect: (file: File) => void;
@@ -8,6 +8,7 @@ interface UploadZoneProps {
 export function UploadZone({ onFileSelect }: UploadZoneProps) {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -56,7 +57,7 @@ export function UploadZone({ onFileSelect }: UploadZoneProps) {
         <button
           type="button"
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          onClick={() => openPicker(false)}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-4 w-4" />
           Nahrať súbor
@@ -64,9 +65,9 @@ export function UploadZone({ onFileSelect }: UploadZoneProps) {
         <button
           type="button"
           className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          onClick={() => openPicker(true)}
+          onClick={() => cameraInputRef.current?.click()}
         >
-          <FileImage className="h-4 w-4" />
+          <Camera className="h-4 w-4" />
           Odfotiť
         </button>
       </div>
@@ -74,6 +75,14 @@ export function UploadZone({ onFileSelect }: UploadZoneProps) {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
