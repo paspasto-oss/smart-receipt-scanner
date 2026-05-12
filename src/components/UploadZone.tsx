@@ -29,14 +29,6 @@ export function UploadZone({ onFileSelect }: UploadZoneProps) {
     e.target.value = "";
   };
 
-  const openPicker = (capture: boolean) => {
-    const input = fileInputRef.current;
-    if (!input) return;
-    if (capture) input.setAttribute("capture", "environment");
-    else input.removeAttribute("capture");
-    input.click();
-  };
-
   return (
     <div
       className={`upload-zone flex flex-col items-center justify-center gap-4 p-10 ${dragOver ? "drag-over" : ""}`}
