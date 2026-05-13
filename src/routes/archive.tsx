@@ -8,6 +8,7 @@ import {
   createFolderFn,
   deleteFolderFn,
   setReceiptFolderFn,
+  renameFolderFn,
 } from "@/server/receipts.functions";
 import type { ReceiptData } from "@/components/ReceiptResult";
 import { ReceiptResult } from "@/components/ReceiptResult";
@@ -146,6 +147,18 @@ function ArchivePage() {
     }
   };
 
+  const handleRenameFolder = async (id: string, currentName: string) => {
+    const name = prompt("Nový názov priečinka:", currentName)?.trim();
+    if (!name || name === currentName) return;
+    try {
+      await renameFolderFn({ data: { id, name } });
+      setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+    } catch (e) {
+      console.error(e);
+      alert("Nepodarilo sa premenovať priečinok.");
+    }
+  };
+
   const handleAssignFolder = async (receiptId: string, folderId: string | null) => {
     try {
       await setReceiptFolderFn({ data: { receiptId, folderId } });
@@ -273,6 +286,8 @@ function ArchivePage() {
                 >
                   <button
                     onClick={() => setActiveFolder(f.id)}
+                    onDoubleClick={() => handleRenameFolder(f.id, f.name)}
+                    title="Dvojklikom premenovať"
                     className="inline-flex items-center gap-1.5"
                   >
                     <Folder className="h-3.5 w-3.5" />

@@ -79,6 +79,17 @@ export async function deleteFolder(id: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function renameFolder(id: string, name: string) {
+  const { data, error } = await supabaseAdmin
+    .from("folders")
+    .update({ name })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function setReceiptFolder(receiptId: string, folderId: string | null) {
   const { error } = await supabaseAdmin
     .from("receipts")
