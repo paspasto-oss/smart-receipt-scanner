@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update folders" ON public.folders FOR UPDATE USING (true) WITH CHECK (true);
