@@ -7,6 +7,7 @@ import {
   createFolder,
   deleteFolder,
   setReceiptFolder,
+  renameFolder,
 } from "./receipts.server";
 import type { ReceiptData } from "@/components/ReceiptResult";
 
@@ -50,4 +51,10 @@ export const setReceiptFolderFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await setReceiptFolder(data.receiptId, data.folderId);
     return { ok: true };
+  });
+
+export const renameFolderFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; name: string }) => data)
+  .handler(async ({ data }) => {
+    return renameFolder(data.id, data.name);
   });
