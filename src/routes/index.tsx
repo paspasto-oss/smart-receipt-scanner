@@ -102,7 +102,7 @@ function Index() {
 
   useEffect(() => {
     loadReceiptsFn().then((data) => setRecentReceipts(data)).catch(console.error);
-  }, []);
+  }, [recentReceipts, imageUrl]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     setSelectedFile(file);
@@ -118,6 +118,30 @@ function Index() {
         data: { base64Image: base64, mimeType: file.type || "image/jpeg" },
       });
       setScanning(false);
+      // Detect possible duplicate receipt before saving
+      const candidate = data as ReceiptData;
+      const normalize = (s: string) => (s || "").trim().toLowerCase();
+      const sameAmount = (a: number, b: number) => Math.abs(a - b) < 0.01;
+      const duplicate = recentReceipts.find(
+        (r) =>
+          normalize(r.datum) === normalize(candidate.datum) &&
+          (normalize(r.dodavatel.skratka) === normalize(candidate.dodavatel.skratka) ||
+            normalize(r.dodavatel.nazov) === normalize(candidate.dodavatel.nazov)) &&
+          sameAmount(Number(r.celkom_s_dph), Number(candidate.celkom_s_dph))
+      );
+      if (duplicate) {
+        const ok = window.confirm(
+          `Upozornenie: Tento bloček už pravdepodobne máte v archíve.\n\n` +
+            `Dodávateľ: ${duplicate.dodavatel.nazov}\n` +
+            `Dátum: ${duplicate.datum}\n` +
+            `Suma: ${Number(duplicate.celkom_s_dph).toFixed(2).replace(".", ",")} €\n\n` +
+            `Chcete ho aj tak uložiť?`
+        );
+        if (!ok) {
+          handleRemove();
+          return;
+        }
+      }
       // Upload original image to storage
       let uploadedUrl: string | null = null;
       try {
@@ -131,7 +155,7 @@ function Index() {
       } catch (upErr) {
         console.error("Failed to upload receipt image:", upErr);
       }
-      const enriched: ReceiptData = { ...(data as ReceiptData), image_url: uploadedUrl };
+      const enriched: ReceiptData = { ...candidate, image_url: uploadedUrl };
       setResult(enriched);
       // Save to database
       try {
