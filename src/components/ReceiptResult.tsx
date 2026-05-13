@@ -1,4 +1,4 @@
-import { Check, Store, Calendar, Receipt, Tag, Building2, Download } from "lucide-react";
+import { Check, Store, Calendar, Receipt, Tag, Building2, Download, AlertTriangle } from "lucide-react";
 
 export interface ReceiptData {
   datum: string;
@@ -17,6 +17,7 @@ export interface ReceiptData {
   celkom_dph: number;
   celkom_s_dph: number;
   image_url?: string | null;
+  warnings?: string[];
 }
 
 interface ReceiptResultProps {
@@ -46,6 +47,20 @@ export function ReceiptResult({ data, onExportXml }: ReceiptResultProps) {
           </button>
         )}
       </div>
+
+      {data.warnings && data.warnings.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+          <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="h-4 w-4" />
+            Skontrolujte údaje
+          </div>
+          <ul className="ml-6 list-disc space-y-1 text-xs text-amber-700/90 dark:text-amber-300/90">
+            {data.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
