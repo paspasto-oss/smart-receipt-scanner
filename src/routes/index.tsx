@@ -102,7 +102,7 @@ function Index() {
 
   useEffect(() => {
     loadReceiptsFn().then((data) => setRecentReceipts(data)).catch(console.error);
-  }, []);
+  }, [recentReceipts, imageUrl]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     setSelectedFile(file);
